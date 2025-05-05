@@ -1,5 +1,4 @@
 streamlit
 opencv-python-headless
-cvlib
-matplotlib
+mediapipe
 numpy
