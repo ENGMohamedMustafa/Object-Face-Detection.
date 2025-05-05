@@ -1,41 +1,34 @@
 import streamlit as st
 import cv2
-import cvlib as cv
-from cvlib.object_detection import draw_bbox
+import mediapipe as mp
 import numpy as np
 
-st.set_page_config(page_title="Object & Face Detection App", layout="wide")
-st.title("🧠 Object & Face Detection App (Streamlit Friendly)")
+st.set_page_config(layout="wide")
+st.title("👁️ Real-Time Face Detection using Mediapipe")
 
-option = st.radio("Choose Input Type:", ("📷 Upload Image", "📹 Use Webcam"))
+mp_face_detection = mp.solutions.face_detection
+mp_drawing = mp.solutions.drawing_utils
 
-def process_image(img):
-    bbox, label, conf = cv.detect_common_objects(img)
-    output_img = draw_bbox(img, bbox, label, conf)
-    return output_img, label
+run = st.checkbox('Start Webcam')
+FRAME_WINDOW = st.image([])
 
-if option == "📷 Upload Image":
-    uploaded_file = st.file_uploader("Upload an image...", type=["jpg", "jpeg", "png"])
-    if uploaded_file is not None:
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        image = cv2.imdecode(file_bytes, 1)
-        st.image(image, channels="BGR", caption="Original Image", use_column_width=True)
+camera = cv2.VideoCapture(0)
 
-        output_img, detected = process_image(image)
-        st.image(output_img, channels="BGR", caption="Detected Objects", use_column_width=True)
-        st.success(f"Detected: {', '.join(detected)}")
-
-else:
-    run = st.checkbox('Start Webcam')
-
-    FRAME_WINDOW = st.image([])
-    camera = cv2.VideoCapture(0)
-
+with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
     while run:
-        _, frame = camera.read()
-        frame = cv2.flip(frame, 1)
-        output_img, _ = process_image(frame)
-        FRAME_WINDOW.image(output_img, channels="BGR")
+        success, image = camera.read()
+        if not success:
+            st.write("Failed to capture image")
+            break
+
+        image = cv2.flip(image, 1)
+        results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+        if results.detections:
+            for detection in results.detections:
+                mp_drawing.draw_detection(image, detection)
+
+        FRAME_WINDOW.image(image, channels="BGR")
 
     else:
-        st.write('Webcam stopped.')
+        st.write("Stopped.")
