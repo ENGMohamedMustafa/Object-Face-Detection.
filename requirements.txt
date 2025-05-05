@@ -1,0 +1,5 @@
+streamlit
+opencv-python
+cvlib
+matplotlib
+numpy
